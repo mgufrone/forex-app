@@ -1,0 +1,3 @@
+output   = "models"
+[sqlite3]
+dbname="test.db"

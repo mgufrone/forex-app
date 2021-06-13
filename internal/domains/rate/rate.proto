@@ -1,0 +1,61 @@
+syntax = "proto3";
+package service;
+option go_package = ".;rate_service";
+option java_multiple_files = true;
+option java_package = "com.mgufron.services.grpc.service";
+option java_outer_classname = "RateServiceProto";
+
+import "google/protobuf/any.proto";
+
+service RateService {
+  // read
+  rpc GetAll(RateFilter) returns (RateData) {}
+  rpc Count(RateFilter) returns(RateCountResult) {}
+  rpc GetAndCount(RateFilter) returns (RateCount) {}
+  // write
+  rpc Create(Rate) returns (Rate) {}
+  rpc Update(Rate) returns (Rate) {}
+  rpc Delete(Rate) returns (RateResult) {}
+}
+
+message RateResult {
+  bool ok = 1;
+}
+message RateCountResult {
+  int64 total = 1;
+}
+message RateCount {
+  int64 total = 1;
+  repeated Rate data = 2;
+}
+message RateData {
+  repeated Rate data = 1;
+}
+message RateQuery {
+  string field = 1;
+  int32 operator = 2;
+  google.protobuf.Any value = 3;
+  repeated RateQuery and = 4;
+  repeated RateQuery or = 5;
+}
+
+message RateFilter {
+  int32 perPage = 1;
+  int32 page = 2;
+  string sort = 3;
+  string sortBy = 4;
+
+  repeated RateQuery query = 5;
+}
+
+message Rate {
+  string id = 1;
+  string base = 2;
+  string symbol = 3;
+  string source = 4;
+  string sourceType = 5;
+  double sell = 6;
+  double buy = 7;
+  int64 updatedAt = 8;
+
+}

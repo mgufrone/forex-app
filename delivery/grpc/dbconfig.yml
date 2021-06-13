@@ -1,0 +1,10 @@
+development:
+  dialect: sqlite3
+  datasource: test.db
+  dir: migrations/mysql
+
+production:
+  dialect: mysql
+  datasource: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DBNAME}?parseTime=true
+  dir: migrations/mysql
+  table: migrations
