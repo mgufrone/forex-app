@@ -16,15 +16,26 @@ type dbQuery struct {
 }
 
 func (d *dbQuery) CriteriaBuilder() criteria.ICriteriaBuilder {
-	panic("implement me")
+	return newDbCriteria()
 }
 
 func (d *dbQuery) Apply(cb criteria.ICriteriaBuilder) rate.IQuery {
-	panic("implement me")
+	d.mods = cb.(dbCriteria).mods
+	return d
 }
 
 func (d *dbQuery) GetAll(ctx context.Context) (out []*rate.Rate, err error) {
-	models.Rates().All()
+	rates, err := models.Rates(d.mods...).All(ctx, d.db)
+	if err != nil {
+		return
+	}
+	out = make([]*rate.Rate, len(rates))
+	for idx, c := range rates {
+		rt := rate.NewRate(c.Base, c.Symbol, c.Source, c.SourceType, c.Sell, c.Buy, c.UpdatedAt)
+		rt.SetID(c.ID)
+		out[idx] = rt
+	}
+	return
 }
 
 func (d *dbQuery) Count(ctx context.Context) (total int64, err error) {

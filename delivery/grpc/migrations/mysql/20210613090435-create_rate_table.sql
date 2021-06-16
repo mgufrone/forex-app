@@ -1,7 +1,7 @@
 
 -- +migrate Up
 -- +migrate StatementBegin
-CREATE TABLE rate (
+CREATE TABLE rates (
     id varchar(255) not null primary key,
     base varchar(3) not null,
     symbol varchar(3) not null,
