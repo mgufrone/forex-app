@@ -1,104 +1,159 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"github.com/mgufrone/forex/internal/shared/criteria"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"strings"
 )
 
-type dbCriteria struct {
-	mods []qm.QueryMod
+type dbCriteriaBuilder struct {
+	conditions []criteria.ICondition
+	ands       []criteria.ICriteriaBuilder
+	ors        []criteria.ICriteriaBuilder
+	pagination  []int
+	sort [][]string
 }
 
-func newDbCriteria() criteria.ICriteriaBuilder {
-	return dbCriteria{mods: []qm.QueryMod{}}
-}
-
-func (d dbCriteria) Copy() criteria.ICriteriaBuilder {
-	e := newDbCriteria()
-	e.(*dbCriteria).mods = d.mods
-	return e
-}
-
-func (d dbCriteria) Select(fields ...string) criteria.ICriteriaBuilder {
-	d.mods = append(d.mods, qm.Select(fields...))
+func (d dbCriteriaBuilder) Paginate(page int, perPage int) criteria.ICriteriaBuilder {
+	d.pagination = []int{page, perPage}
 	return d
 }
 
-func (d dbCriteria) Paginate(page int, perPage int) criteria.ICriteriaBuilder {
-	d.mods = append(d.mods, qm.Limit(perPage), qm.Offset((page-1)*perPage))
+func (d dbCriteriaBuilder) Order(field string, direction string) criteria.ICriteriaBuilder {
+	d.sort = append(d.sort, []string{field, direction})
 	return d
 }
 
-func (d dbCriteria) Order(field string, direction string) criteria.ICriteriaBuilder {
-	d.mods = append(d.mods, qm.OrderBy(fmt.Sprintf("%s %s", field, direction)))
-	return d
+func (d dbCriteriaBuilder) Copy() criteria.ICriteriaBuilder {
+	return dbCriteriaBuilder{}
 }
 
-func (d dbCriteria) Where(condition ...criteria.ICondition) criteria.ICriteriaBuilder {
-	for _, c := range condition {
-		var q qm.QueryMod
-		switch c.Operator() {
-		case criteria.In:
-			v := c.Value().([]interface{})
-			q = qm.WhereIn(fmt.Sprintf("%s in ?", c.Field()), v...)
-			break
-		case criteria.NotIn:
-			v := c.Value().([]interface{})
-			q = qm.WhereNotIn(fmt.Sprintf("%s not in ?", c.Field()), v...)
-			break
-		case criteria.Eq:
-			q = qm.Where(fmt.Sprintf("%s = ?", c.Field()), c.Value())
-			break
-		case criteria.Not:
-			q = qm.Where(fmt.Sprintf("%s != ?", c.Field()), c.Value())
-			break
-		case criteria.Gt:
-			q = qm.Where(fmt.Sprintf("%s > ?", c.Field()), c.Value())
-			break
-		case criteria.Gte:
-			q = qm.Where(fmt.Sprintf("%s >= ?", c.Field()), c.Value())
-			break
-		case criteria.Lte:
-			q = qm.Where(fmt.Sprintf("%s <= ?", c.Field()), c.Value())
-			break
-		case criteria.Lt:
-			q = qm.Where(fmt.Sprintf("%s < ?", c.Field()), c.Value())
-			break
-		case criteria.Between:
-			v := c.Value().([]interface{})
-			q = qm.Where(fmt.Sprintf("%s between ? and ?", c.Field()), v[0], v[1])
-			break
-		case criteria.Like:
-			q = qm.Where(fmt.Sprintf("%s ilike ?", c.Field()), fmt.Sprintf(`%%%s%%`, c.Value()))
-			break
-		case criteria.NotLike:
-			q = qm.Where(fmt.Sprintf("%s not ilike ?", c.Field()), fmt.Sprintf(`%%%s%%`, c.Value()))
-			break
+func (d dbCriteriaBuilder) Select(fields ...string) criteria.ICriteriaBuilder {
+	return dbCriteriaBuilder{}
+}
+
+func (d dbCriteriaBuilder) Where(condition ...criteria.ICondition) criteria.ICriteriaBuilder {
+	for _, r := range condition {
+		if r == nil {
+			continue
 		}
-		d.mods = append(d.mods, q)
+		d.conditions = append(d.conditions, r)
 	}
 	return d
 }
 
-func (d dbCriteria) And(other ...criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
-	for _, o := range other {
-		mds := o.(dbCriteria).mods
-		expr := qm.Expr(mds...)
-		d.mods = append(d.mods, expr)
-	}
+func (d dbCriteriaBuilder) And(other ...criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
+	d.ands = append(d.ands, other...)
 	return d
 }
 
-func (d dbCriteria) Or(other ...criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
-	for _, o := range other {
-		mds := o.(dbCriteria).mods
-		expr := qm.Or2(qm.Expr(mds...))
-		d.mods = append(d.mods, expr)
-	}
+func (d dbCriteriaBuilder) Or(other ...criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
+	d.ors = append(d.ors, other...)
 	return d
 }
 
-func (d dbCriteria) ToString() string {
-	panic("implement me")
+func (d dbCriteriaBuilder) ToString() (res string) {
+	concats := make([]string, 0)
+	if len(d.pagination) > 0 {
+		concats = append(concats, fmt.Sprintf("page:%d;per_page:%d;", d.pagination[0], d.pagination[1]))
+	}
+	for _, s := range d.sort {
+		concats = append(concats, "sort:%s-%s", s[0], s[1])
+	}
+	for _, r := range d.conditions {
+		concats = append(concats, r.ToString())
+	}
+	if len(d.ands) > 0 {
+		var ands []string
+		for _, a := range d.ands {
+			ands = append(ands, a.ToString())
+		}
+		concats = append(concats, fmt.Sprintf("ands(%s)", strings.Join(ands, ",")))
+	}
+	if len(d.ors) > 0 {
+		var ands []string
+		for _, a := range d.ors {
+			ands = append(ands, a.ToString())
+		}
+		concats = append(concats, fmt.Sprintf("ors(%s)", strings.Join(ands, ",")))
+	}
+	res = strings.Join(concats, ";")
+	return
 }
+
+func operator(condition criteria.ICondition) string {
+	switch condition.Operator() {
+	case criteria.Eq:
+		return "="
+	case criteria.Not:
+		return "!="
+	case criteria.Like:
+		return "like"
+	case criteria.NotLike:
+		return "not like"
+	case criteria.In:
+		return "in"
+	case criteria.NotIn:
+		return "not in"
+	}
+	return ""
+}
+func value(operator criteria.ICondition) interface{} {
+	if operator.Operator() == criteria.Like || operator.Operator() == criteria.NotLike {
+		return fmt.Sprintf("%%%s%%", operator.Value())
+	}
+	return operator.Value()
+}
+
+func (d dbCriteriaBuilder) apply(db *gorm.DB) *gorm.DB {
+	ori := db
+	if len(d.pagination) > 0 {
+		db = db.
+			Limit(d.pagination[1]).
+			Offset((d.pagination[0]-1) * d.pagination[1])
+	}
+	if len(d.sort) > 0 {
+		for _, srt := range d.sort {
+			isDesc := true
+			if srt[0] == "asc" {
+				isDesc = false
+			}
+			db = db.Order(clause.OrderByColumn{
+				Column:  clause.Column{Name: srt[0]},
+				Desc:    isDesc,
+			})
+		}
+	}
+	if len(d.conditions) > 0 {
+		ses := db.WithContext(context.TODO())
+		for _, r := range d.conditions {
+			ses = ses.Where(fmt.Sprintf("%s %s ?", r.Field(), operator(r)), value(r))
+		}
+		db = db.Where(ses)
+	}
+	if len(d.ands) > 0 {
+		tx := ori.WithContext(context.TODO())
+		for _, a := range d.ands {
+			ses := a.(dbCriteriaBuilder).apply(ori.WithContext(context.TODO()))
+			tx = tx.Where(ses)
+		}
+		db = db.Where(tx)
+	}
+	if len(d.ors) > 0 {
+		tx := ori.WithContext(context.TODO())
+		for idx, a := range d.ors {
+			ses := a.(dbCriteriaBuilder).apply(ori.WithContext(context.TODO()))
+			if idx == 0 {
+				tx = tx.Where(ses)
+			} else {
+				tx = tx.Or(ses)
+			}
+		}
+		db = db.Where(tx)
+	}
+	return db
+}
+

@@ -2,50 +2,84 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"github.com/mgufrone/forex/delivery/grpc/models"
 	"github.com/mgufrone/forex/internal/domains/rate"
 	"github.com/mgufrone/forex/internal/shared/criteria"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"gorm.io/gorm"
 )
 
 type dbQuery struct {
-	db *sql.DB
-	mdl *models.Rate
-	mods []qm.QueryMod
+	db *gorm.DB
+	cb criteria.ICriteriaBuilder
+}
+
+func NewQuery(db *gorm.DB) rate.IQuery {
+	return &dbQuery{db: db}
 }
 
 func (d *dbQuery) CriteriaBuilder() criteria.ICriteriaBuilder {
-	return newDbCriteria()
+	return dbCriteriaBuilder{}
 }
 
 func (d *dbQuery) Apply(cb criteria.ICriteriaBuilder) rate.IQuery {
-	d.mods = cb.(dbCriteria).mods
+	d.cb = cb
 	return d
 }
 
+func (d *dbQuery) apply(ctx context.Context) *gorm.DB {
+	db := d.db
+	if d.cb != nil {
+		cr := d.cb.(dbCriteriaBuilder)
+		db = cr.apply(d.db)
+	}
+	db = db.WithContext(ctx).Model(&models.Rate{})
+	d.cb = nil
+	return db
+}
+
 func (d *dbQuery) GetAll(ctx context.Context) (out []*rate.Rate, err error) {
-	rates, err := models.Rates(d.mods...).All(ctx, d.db)
-	if err != nil {
+	res, total, err := d.GetAndCount(ctx)
+	if err != nil || total == 0 {
 		return
 	}
-	out = make([]*rate.Rate, len(rates))
-	for idx, c := range rates {
-		rt := rate.NewRate(c.Base, c.Symbol, c.Source, c.SourceType, c.Sell, c.Buy, c.UpdatedAt)
-		rt.SetID(c.ID)
-		out[idx] = rt
+	for _, r := range res {
+		out = append(out, r)
 	}
 	return
 }
 
 func (d *dbQuery) Count(ctx context.Context) (total int64, err error) {
-	panic("implement me")
+	db := d.apply(ctx)
+	return d.count(ctx, db)
+}
+func (d *dbQuery) count(ctx context.Context, db *gorm.DB) (total int64, err error) {
+	err = db.WithContext(ctx).Count(&total).Error
+	return
 }
 
 func (d *dbQuery) GetAndCount(ctx context.Context) (out []*rate.Rate, total int64, err error) {
-	panic("implement me")
+	db := d.apply(ctx)
+	total, err = d.count(context.Background(), db)
+	if err != nil || total == 0 {
+		return
+	}
+	res := make([]*models.Rate, 0)
+	err = db.Find(&res).Error
+	if err == nil {
+		for _, m := range res {
+			mdl, _ := m.ToDomain()
+			out = append(out, mdl)
+		}
+	}
+	return
 }
 
 func (d *dbQuery) FindByID(ctx context.Context, id string) (out *rate.Rate, err error) {
-	panic("implement me")
+	db := d.db
+	var res *models.Rate
+	err = db.WithContext(ctx).Where("id = ?", id).First(&res).Error
+	if err == nil {
+		out, err = res.ToDomain()
+	}
+	return
 }
