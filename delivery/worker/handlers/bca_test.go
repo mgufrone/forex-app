@@ -11,6 +11,7 @@ import (
 )
 
 func TestBniWorker_Run(t *testing.T) {
+	t.Skip()
 	w := &bniWorker{client: http.DefaultClient}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
