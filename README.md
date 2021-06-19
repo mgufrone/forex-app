@@ -17,8 +17,8 @@ While I'm trying to embrace microservice, I want to put the code in monorepo sty
 |-- shared
 ```
 
-Delivery packages will contains of how the app will interact to the outside world. Be it exposing the data via GRPC, GraphQL or a worker/background job.
-Each delivery will have it's own handler since it has different responsibility. 
+Delivery packages will contain of how the app will interact to the outside world. Be it exposing the data via GRPC, GraphQL or a worker/background job.
+Each delivery will have its own handler since it has different responsibility. 
 
 Internal will host domain-specific code and shared code. 
 Domain-specific will hold things like entity, repository interface, filterable columns via criteria.
