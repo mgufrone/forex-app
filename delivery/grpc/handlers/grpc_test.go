@@ -46,23 +46,21 @@ func (g *grpcTest) TestGetAll() {
 		cb := &mock.CriteriaMock{}
 		cb.On("Paginate", mock2.Anything, mock2.Anything).Return(cb)
 		cb.On("Order", mock2.Anything, mock2.Anything).Return(cb)
-		g.query.On("CriteriaBuilder").Return(cb)
-		g.query.On("Apply", cb).Return(g.query)
+		g.query.On("CriteriaBuilder").Once().Return(cb)
+		g.query.On("Apply", cb).Once().Return(g.query)
 		err := errors.New("something wrong")
 		if !c.shouldError {
 			err = nil
 		}
-		g.query.On("GetAll", mock2.Anything).Return(c.result, err)
-		res, err := g.handler.GetAll(context.Background(), c.filter)
+		g.query.On("GetAll", mock2.Anything).Once().Return(c.result, err)
+		_, err1 := g.handler.GetAll(context.Background(), c.filter)
 		cb.AssertExpectations(g.T())
 		g.query.AssertExpectations(g.T())
 		g.query.AssertNumberOfCalls(g.T(), "GetAll", idx + 1)
 		if c.shouldError {
-			assert.NotNil(g.T(), err)
-			assert.Nil(g.T(), res.GetData())
+			assert.NotNil(g.T(), err1)
 		} else {
-			assert.NotNil(g.T(), err)
-			assert.Nil(g.T(), res.GetData())
+			assert.Nil(g.T(), err1)
 		}
 	}
 }
