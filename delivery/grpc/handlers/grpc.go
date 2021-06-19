@@ -21,7 +21,7 @@ func (g *grpcHandler) applyQuery(cb criteria.ICriteriaBuilder, query []*rate_ser
 	for _, q := range query {
 		op := criteria.Operator(q.GetOperator())
 		cb = cb.Where(
-			criteria.NewCondition(q.GetField(), op, q.GetValue())
+			criteria.NewCondition(q.GetField(), op, q.GetValue()),
 		)
 		if len(q.And) > 0 {
 			cb = cb.And(g.applyQuery(g.query.CriteriaBuilder(), q.And))
@@ -46,36 +46,57 @@ func (g *grpcHandler) applyCriteriaBuilder(filter *rate_service.RateFilter) crit
 
 func (g *grpcHandler) GetAll(ctx context.Context, filter *rate_service.RateFilter) (*rate_service.RateData, error) {
 	res, err := g.query.Apply(g.applyCriteriaBuilder(filter)).GetAll(ctx)
-	if err != nil {
-		return nil, err
-	}
 	rd := &rate_service.RateData{}
-	for _, r := range res {
-		rt := &rate_service.Rate{}
-		rt.FromDomain(r)
-		rd.Data = append(rd.Data, rt)
+	if err == nil {
+		for _, r := range res {
+			rt := &rate_service.Rate{}
+			rt.FromDomain(r)
+			rd.Data = append(rd.Data, rt)
+		}
 	}
-	return rd, nil
+	return rd, err
 }
 
 func (g *grpcHandler) Count(ctx context.Context, filter *rate_service.RateFilter) (*rate_service.RateCountResult, error) {
-	panic("implement me")
+	res, err := g.query.Apply(g.applyCriteriaBuilder(filter)).Count(ctx)
+	rd := &rate_service.RateCountResult{
+		Total: res,
+	}
+	return rd, err
 }
 
 func (g *grpcHandler) GetAndCount(ctx context.Context, filter *rate_service.RateFilter) (*rate_service.RateCount, error) {
-	panic("implement me")
+	res, total, err := g.query.Apply(g.applyCriteriaBuilder(filter)).GetAndCount(ctx)
+	rd := &rate_service.RateCount{
+		Total: total,
+	}
+	if err == nil && total > 0 {
+		for _, r := range res {
+			rt := &rate_service.Rate{}
+			rt.FromDomain(r)
+			rd.Data = append(rd.Data, rt)
+		}
+	}
+	return rd, err
 }
 
 func (g *grpcHandler) Create(ctx context.Context, r *rate_service.Rate) (*rate_service.Rate, error) {
-	panic("implement me")
+	rt := r.ToDomain()
+	err := g.command.Create(ctx, rt)
+	if err != nil {
+		r.Id = rt.ID()
+	}
+	return r, err
 }
 
 func (g *grpcHandler) Update(ctx context.Context, r *rate_service.Rate) (*rate_service.Rate, error) {
-	panic("implement me")
+	return r, g.command.Update(ctx, r.ToDomain())
 }
 
 func (g *grpcHandler) Delete(ctx context.Context, r *rate_service.Rate) (*rate_service.RateResult, error) {
-	panic("implement me")
+	rt := r.ToDomain()
+	err := g.command.Delete(ctx, rt)
+	return &rate_service.RateResult{Ok: err != nil}, err
 }
 
 
