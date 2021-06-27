@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	baseColumn       = "base"
-	symbolColumn     = "symbol"
-	sourceColumn     = "source"
-	sourceTypeColumn = "source_type"
-	buyColumn        = "buy"
-	sellColumn       = "sell"
-	updatedAtColumn  = "updated_at"
+	IDColumn         = "id"
+	BaseColumn       = "base"
+	SymbolColumn     = "symbol"
+	SourceColumn     = "source"
+	SourceTypeColumn = "source_type"
+	BuyColumn        = "buy"
+	SellColumn       = "sell"
+	UpdatedAtColumn  = "updated_at"
 )
 
 type Rate struct {
@@ -41,31 +42,31 @@ func (r *Rate) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	if base, ok := maps[baseColumn].(string); ok {
+	if base, ok := maps[BaseColumn].(string); ok {
 		r.SetBase(base)
 	}
 
-	if symbol, ok := maps[symbolColumn].(string); ok {
+	if symbol, ok := maps[SymbolColumn].(string); ok {
 		r.SetSymbol(symbol)
 	}
 
-	if source, ok := maps[sourceColumn].(string); ok {
+	if source, ok := maps[SourceColumn].(string); ok {
 		r.SetSource(source)
 	}
 
-	if sourceType, ok := maps[sourceTypeColumn].(string); ok {
+	if sourceType, ok := maps[SourceTypeColumn].(string); ok {
 		r.SetSourceType(sourceType)
 	}
 
-	if buy, ok := maps[buyColumn].(float64); ok {
+	if buy, ok := maps[BuyColumn].(float64); ok {
 		r.SetBuy(buy)
 	}
 
-	if sell, ok := maps[sellColumn].(float64); ok {
+	if sell, ok := maps[SellColumn].(float64); ok {
 		r.SetBuy(sell)
 	}
 
-	if updatedAt, ok := maps[sellColumn].(int64); ok {
+	if updatedAt, ok := maps[SellColumn].(int64); ok {
 		r.SetUpdatedAt(time.Unix(updatedAt, 0))
 	}
 
@@ -74,13 +75,14 @@ func (r *Rate) UnmarshalJSON(bytes []byte) error {
 
 func (r *Rate) MarshalJSON() ([]byte, error) {
 	maps := map[string]interface{}{
-		baseColumn:       r.Base(),
-		symbolColumn:     r.Symbol(),
-		sourceColumn:     r.Source(),
-		sourceTypeColumn: r.SourceType(),
-		buyColumn:        r.Buy(),
-		sellColumn:       r.Sell(),
-		updatedAtColumn:  r.UpdatedAt().Unix(),
+		IDColumn:         r.ID(),
+		BaseColumn:       r.Base(),
+		SymbolColumn:     r.Symbol(),
+		SourceColumn:     r.Source(),
+		SourceTypeColumn: r.SourceType(),
+		BuyColumn:        r.Buy(),
+		SellColumn:       r.Sell(),
+		UpdatedAtColumn:  r.UpdatedAt().Unix(),
 	}
 
 	return json.Marshal(maps)
@@ -140,6 +142,20 @@ func (r *Rate) UpdatedAt() time.Time {
 
 func (r *Rate) SetUpdatedAt(date time.Time) {
 	r.updatedAt = date
+}
+
+func (r *Rate) Copy() *Rate {
+	rt := NewRate(
+		r.Base(),
+		r.Symbol(),
+		r.Source(),
+		r.SourceType(),
+		r.Sell(),
+		r.Buy(),
+		r.UpdatedAt(),
+	)
+	rt.SetID(r.ID())
+	return rt
 }
 
 func NewRate(base, symbol, source, sourceType string, sell float64, buy float64, date time.Time) *Rate {

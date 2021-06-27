@@ -1,0 +1,46 @@
+
+scalar Time
+input Pagination {
+  page: Int!
+  perPage: Int!
+}
+enum SortDirection {
+  DESC
+  ASC
+}
+input Sort {
+  sortBy: String! = "created_at"
+  sort: SortDirection! = ASC
+}
+
+input QueryFilter {
+  pagination: Pagination!
+  sort: Sort!
+  group: String!
+  filter: RateFilter!
+}
+
+type Rate {
+  id: String!
+  base: String!
+  symbol: String!
+  source: String!
+  sourceType: String!
+  sell: Float!
+  buy: Float!
+  updatedAt: Time!
+}
+
+input RateFilter {
+  base: String!
+  symbol: String!
+  source: String!
+  sourceType: String!
+  dateBetween: [Time!]
+  date: Time!
+}
+
+type Query {
+  latest(filter: RateFilter): [Rate!]
+  history(query: QueryFilter): [Rate!]
+}

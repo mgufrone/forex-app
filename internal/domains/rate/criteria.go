@@ -6,20 +6,44 @@ import (
 )
 
 func SavedAt(date time.Time) criteria.ICondition {
-	return criteria.NewCondition(updatedAtColumn, criteria.Eq, date)
+	return criteria.NewCondition(UpdatedAtColumn, criteria.Eq, date)
 }
 
 func WhereSource(source string) criteria.ICondition {
-	return criteria.NewCondition(sourceColumn, criteria.Eq, source)
+	if source == "" {
+		return nil
+	}
+	return criteria.NewCondition(SourceColumn, criteria.Eq, source)
 }
 
 func WhereSourceType(sourceType string) criteria.ICondition {
-	return criteria.NewCondition(sourceTypeColumn, criteria.Eq, sourceType)
+	if sourceType == "" {
+		return nil
+	}
+	return criteria.NewCondition(SourceTypeColumn, criteria.Eq, sourceType)
 }
 func WhereSymbol(symbol string) criteria.ICondition {
-	return criteria.NewCondition(symbolColumn, criteria.Eq, symbol)
+	if symbol == "" {
+		return nil
+	}
+	return criteria.NewCondition(SymbolColumn, criteria.Eq, symbol)
+}
+func WhereBase(base string) criteria.ICondition {
+	if base == "" {
+		return nil
+	}
+	return criteria.NewCondition(BaseColumn, criteria.Eq, base)
+}
+func WhereDate(date time.Time) criteria.ICondition {
+	if date.IsZero() {
+		return nil
+	}
+	return criteria.NewCondition(UpdatedAtColumn, criteria.Eq, date)
 }
 
 func SavedBetween(start, end time.Time) criteria.ICondition {
-	return criteria.NewCondition(updatedAtColumn, criteria.Between, []time.Time{start, end})
+	if start.IsZero() || end.IsZero() {
+		return nil
+	}
+	return criteria.NewCondition(UpdatedAtColumn, criteria.Between, []time.Time{start, end})
 }

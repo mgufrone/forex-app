@@ -5,6 +5,8 @@ import (
 	"github.com/mgufrone/forex/internal/domains/rate"
 	"github.com/mgufrone/forex/internal/shared/criteria"
 	"github.com/mgufrone/forex/internal/shared/infrastructure/grpc/rate_service"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type grpcHandler struct {
@@ -13,7 +15,7 @@ type grpcHandler struct {
 	query rate.IQuery
 }
 
-func NewGrpcHandler(command rate.ICommand, query rate.IQuery) *grpcHandler {
+func NewGrpcHandler(command rate.ICommand, query rate.IQuery) rate_service.RateServiceServer {
 	return &grpcHandler{command: command, query: query}
 }
 
@@ -44,14 +46,25 @@ func (g *grpcHandler) applyCriteriaBuilder(filter *rate_service.RateFilter) crit
 	return g.applyQuery(cb, filter.GetQuery())
 }
 
+func (g *grpcHandler) Latest(ctx context.Context, filter *rate_service.DateFilter) (*rate_service.RateData, error) {
+	return nil, nil
+}
+func (g *grpcHandler) History(ctx context.Context, span *rate_service.SpanFilter) (*rate_service.RateData, error) {
+	return nil, nil
+}
+
 func (g *grpcHandler) GetAll(ctx context.Context, filter *rate_service.RateFilter) (*rate_service.RateData, error) {
-	res, err := g.query.Apply(g.applyCriteriaBuilder(filter)).GetAll(ctx)
-	rd := &rate_service.RateData{}
+	res, err := g.query.Apply(
+		g.applyCriteriaBuilder(filter),
+	).GetAll(ctx)
+	rd := &rate_service.RateData{
+		Data: []*rate_service.Rate{},
+	}
 	if err == nil {
 		for _, r := range res {
-			rt := &rate_service.Rate{}
+			var rt rate_service.Rate
 			rt.FromDomain(r)
-			rd.Data = append(rd.Data, rt)
+			rd.Data = append(rd.Data, &rt)
 		}
 	}
 	return rd, err
@@ -82,7 +95,21 @@ func (g *grpcHandler) GetAndCount(ctx context.Context, filter *rate_service.Rate
 
 func (g *grpcHandler) Create(ctx context.Context, r *rate_service.Rate) (*rate_service.Rate, error) {
 	rt := r.ToDomain()
-	err := g.command.Create(ctx, rt)
+	// ensure data insertion is unique
+	cb := g.query.CriteriaBuilder().Where(
+		rate.WhereSymbol(rt.Symbol()),
+		rate.WhereSource(rt.Source()),
+		rate.WhereSourceType(rt.SourceType()),
+		rate.SavedAt(rt.UpdatedAt()),
+	)
+	total, err := g.query.Apply(cb).Count(ctx)
+	if err != nil {
+		return r, err
+	}
+	if total > 0 {
+		return r, status.Error(codes.AlreadyExists, "rate already exists")
+	}
+	err = g.command.Create(ctx, rt)
 	if err != nil {
 		r.Id = rt.ID()
 	}

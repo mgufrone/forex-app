@@ -5,10 +5,21 @@ import (
 	"github.com/mgufrone/forex/internal/domains/rate"
 	"github.com/mgufrone/forex/internal/shared/criteria"
 	"github.com/stretchr/testify/mock"
+	"time"
 )
 
 type QueryMock struct {
 	mock.Mock
+}
+
+func (q *QueryMock) Latest(ctx context.Context, date time.Time) (out []*rate.Rate, err error) {
+	args := q.Called(ctx, date)
+	return args.Get(0).([]*rate.Rate), args.Error(1)
+}
+
+func (q *QueryMock) History(ctx context.Context, span rate.TimeSpan, start, end time.Time) (out []*rate.Rate, err error) {
+	args := q.Called(ctx, span, start, end)
+	return args.Get(0).([]*rate.Rate), args.Error(1)
 }
 
 func (q *QueryMock) CriteriaBuilder() criteria.ICriteriaBuilder {

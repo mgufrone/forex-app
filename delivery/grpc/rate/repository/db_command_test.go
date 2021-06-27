@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"github.com/mgufrone/forex/delivery/grpc/models"
+	models2 "github.com/mgufrone/forex/delivery/grpc/rate/models"
 	"github.com/mgufrone/forex/internal/domains/rate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -26,7 +26,7 @@ func (rp *dbCommandTest) SetupSuite() {
 		DisableForeignKeyConstraintWhenMigrating: true,
 		QueryFields:                              true,
 	})
-	rp.db.AutoMigrate(&models.Rate{})
+	rp.db.AutoMigrate(&models2.Rate{})
 	rp.repo = NewCommand(rp.db)
 }
 
@@ -48,7 +48,7 @@ func (rp *dbCommandTest) Test01Insert() {
 	err := rp.repo.Create(context.Background(), rt)
 	assert.Nil(rp.T(), err)
 	var total int64
-	rp.db.Model(&models.Rate{}).Count(&total)
+	rp.db.Model(&models2.Rate{}).Count(&total)
 	assert.Equal(rp.T(), int64(1), total)
 	rp.lastEntry = rt
 }
@@ -58,9 +58,9 @@ func (rp *dbCommandTest) Test02Update() {
 	err := rp.repo.Update(context.Background(), rp.lastEntry)
 	assert.Nil(rp.T(), err)
 	var total int64
-	rp.db.Model(&models.Rate{}).Where("symbol = ?", "cde").Count(&total)
+	rp.db.Model(&models2.Rate{}).Where("symbol = ?", "cde").Count(&total)
 	assert.Equal(rp.T(), int64(1), total)
-	rp.db.Model(&models.Rate{}).Where("symbol = ?", "bcd").Count(&total)
+	rp.db.Model(&models2.Rate{}).Where("symbol = ?", "bcd").Count(&total)
 	assert.Equal(rp.T(), int64(0), total)
 	empty := rate.NewRate("base", "symbol", "something", "something", 0.01, 0.02, time.Now())
 	err = rp.repo.Update(context.Background(), empty)
@@ -72,7 +72,7 @@ func (rp *dbCommandTest) Test03Delete() {
 	err := rp.repo.Delete(context.Background(), rp.lastEntry)
 	assert.Nil(rp.T(), err)
 	var total int64
-	rp.db.Model(&models.Rate{}).Where("id = ?", lastID).Count(&total)
+	rp.db.Model(&models2.Rate{}).Where("id = ?", lastID).Count(&total)
 	assert.Equal(rp.T(), int64(0), total)
 }
 

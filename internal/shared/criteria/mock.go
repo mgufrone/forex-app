@@ -6,6 +6,11 @@ type MockCriteria struct {
 	mock.Mock
 }
 
+func (m *MockCriteria) Group(field string) ICriteriaBuilder {
+	m.Called(field)
+	return m
+}
+
 func (m *MockCriteria) Copy() ICriteriaBuilder {
 	return m
 }

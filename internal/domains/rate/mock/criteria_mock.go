@@ -9,6 +9,10 @@ type CriteriaMock struct {
 	mock.Mock
 }
 
+func (c *CriteriaMock) Group(field string) criteria.ICriteriaBuilder {
+	panic("implement me")
+}
+
 func (c *CriteriaMock) Copy() criteria.ICriteriaBuilder {
 	panic("implement me")
 }
@@ -34,8 +38,8 @@ func (c *CriteriaMock) Order(field string, direction string) criteria.ICriteriaB
 
 func (c *CriteriaMock) Where(condition ...criteria.ICondition) criteria.ICriteriaBuilder {
 	args := make([]interface{}, len(condition))
-	for _, c1 := range condition {
-		args = append(args, c1)
+	for idx, c1 := range condition {
+		args[idx] = c1
 	}
 	c.Called(args...)
 	return c
@@ -43,18 +47,23 @@ func (c *CriteriaMock) Where(condition ...criteria.ICondition) criteria.ICriteri
 
 func (c *CriteriaMock) And(other ...criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
 	args := make([]interface{}, len(other))
-	for _, c1 := range other {
-		args = append(args, c1)
+	for idx, c1 := range other {
+		args[idx] = c1
 	}
 	c.Called(args...)
 	return c
 }
 
 func (c *CriteriaMock) Or(other ...criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
-	panic("implement me")
+	args := make([]interface{}, len(other))
+	for idx, c1 := range other {
+		args[idx] = c1
+	}
+	c.Called(args...)
+	return c
 }
 
 func (c *CriteriaMock) ToString() string {
-	panic("implement me")
+	return c.Called().Get(0).(string)
 }
 

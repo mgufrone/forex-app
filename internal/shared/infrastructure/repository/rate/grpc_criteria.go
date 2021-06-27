@@ -13,13 +13,19 @@ type GrpcCriteria struct {
 	Filter *rate_service.RateFilter
 }
 
+func (g GrpcCriteria) Group(field string) criteria.ICriteriaBuilder {
+	g.Filter.Group = append(g.Filter.Group, field)
+	return g
+}
+
 func (g GrpcCriteria) Copy() criteria.ICriteriaBuilder {
 	// TODO: make duplicate of filter
 	return GrpcCriteria{Filter: &rate_service.RateFilter{}}
 }
 
 func (g GrpcCriteria) Select(fields ...string) criteria.ICriteriaBuilder {
-	panic("implement me")
+	g.Filter.Select = fields
+	return g
 }
 
 func (g GrpcCriteria) Paginate(page int, perPage int) criteria.ICriteriaBuilder {

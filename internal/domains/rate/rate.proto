@@ -12,10 +12,23 @@ service RateService {
   rpc GetAll(RateFilter) returns (RateData) {}
   rpc Count(RateFilter) returns(RateCountResult) {}
   rpc GetAndCount(RateFilter) returns (RateCount) {}
+  rpc Latest(DateFilter) returns (RateData) {}
+  rpc History(SpanFilter) returns (RateData) {}
   // write
   rpc Create(Rate) returns (Rate) {}
   rpc Update(Rate) returns (Rate) {}
   rpc Delete(Rate) returns (RateResult) {}
+}
+
+message DateFilter {
+  int64 date = 1;
+  RateQuery filter = 2;
+}
+message SpanFilter {
+  int32 span = 1;
+  int64 start = 2;
+  int64 end = 3;
+  RateQuery filter = 4;
 }
 
 message RateResult {
@@ -44,8 +57,10 @@ message RateFilter {
   int32 page = 2;
   string sort = 3;
   string sortBy = 4;
+  repeated string group = 5;
+  repeated string select = 6;
 
-  repeated RateQuery query = 5;
+  repeated RateQuery query = 7;
 }
 
 message Rate {
@@ -57,5 +72,4 @@ message Rate {
   double sell = 6;
   double buy = 7;
   int64 updatedAt = 8;
-
 }

@@ -13,8 +13,15 @@ type dbCriteriaBuilder struct {
 	conditions []criteria.ICondition
 	ands       []criteria.ICriteriaBuilder
 	ors        []criteria.ICriteriaBuilder
-	pagination  []int
-	sort [][]string
+	pagination []int
+	selects    []string
+	sort       [][]string
+	group      []string
+}
+
+func (d dbCriteriaBuilder) Group(field string) criteria.ICriteriaBuilder {
+	d.group = append(d.group, field)
+	return d
 }
 
 func (d dbCriteriaBuilder) Paginate(page int, perPage int) criteria.ICriteriaBuilder {
@@ -32,7 +39,8 @@ func (d dbCriteriaBuilder) Copy() criteria.ICriteriaBuilder {
 }
 
 func (d dbCriteriaBuilder) Select(fields ...string) criteria.ICriteriaBuilder {
-	return dbCriteriaBuilder{}
+	d.selects = append(d.selects, fields...)
+	return d
 }
 
 func (d dbCriteriaBuilder) Where(condition ...criteria.ICondition) criteria.ICriteriaBuilder {
@@ -62,6 +70,12 @@ func (d dbCriteriaBuilder) ToString() (res string) {
 	}
 	for _, s := range d.sort {
 		concats = append(concats, "sort:%s-%s", s[0], s[1])
+	}
+	for _, s := range d.selects {
+		concats = append(concats, "select:%s", s)
+	}
+	for _, s := range d.group {
+		concats = append(concats, "group:%s", s)
 	}
 	for _, r := range d.conditions {
 		concats = append(concats, r.ToString())
@@ -113,7 +127,7 @@ func (d dbCriteriaBuilder) apply(db *gorm.DB) *gorm.DB {
 	if len(d.pagination) > 0 {
 		db = db.
 			Limit(d.pagination[1]).
-			Offset((d.pagination[0]-1) * d.pagination[1])
+			Offset((d.pagination[0] - 1) * d.pagination[1])
 	}
 	if len(d.sort) > 0 {
 		for _, srt := range d.sort {
@@ -122,10 +136,18 @@ func (d dbCriteriaBuilder) apply(db *gorm.DB) *gorm.DB {
 				isDesc = false
 			}
 			db = db.Order(clause.OrderByColumn{
-				Column:  clause.Column{Name: srt[0]},
-				Desc:    isDesc,
+				Column: clause.Column{Name: srt[0]},
+				Desc:   isDesc,
 			})
 		}
+	}
+	if len(d.group) > 0 {
+		for _, g := range d.group {
+			db = db.Group(g)
+		}
+	}
+	if len(d.selects) > 0 {
+		db = db.Select(d.selects)
 	}
 	if len(d.conditions) > 0 {
 		ses := db.WithContext(context.TODO())
@@ -156,4 +178,3 @@ func (d dbCriteriaBuilder) apply(db *gorm.DB) *gorm.DB {
 	}
 	return db
 }
-

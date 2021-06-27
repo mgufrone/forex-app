@@ -32,6 +32,7 @@ type ICriteriaBuilder interface {
 	Select(fields ...string) ICriteriaBuilder
 	Paginate(page int, perPage int) ICriteriaBuilder
 	Order(field string, direction string) ICriteriaBuilder
+	Group(field string) ICriteriaBuilder
 	// by default, it will run ands
 	Where(condition ...ICondition) ICriteriaBuilder
 	And(other ...ICriteriaBuilder) ICriteriaBuilder

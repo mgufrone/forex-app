@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"github.com/mgufrone/forex/delivery/grpc/models"
+	models2 "github.com/mgufrone/forex/delivery/grpc/rate/models"
 	"github.com/mgufrone/forex/internal/domains/rate"
 	"gorm.io/gorm"
 )
@@ -20,7 +20,7 @@ func NewCommand(db *gorm.DB) rate.ICommand {
 func (d *dbCommand) Create(ctx context.Context, in *rate.Rate) (err error) {
 	id, _ := uuid.NewUUID()
 	in.SetID(id.String())
-	rt := &models.Rate{}
+	rt := &models2.Rate{}
 	rt.FromDomain(in)
 	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return tx.WithContext(ctx).Create(rt).Error
@@ -28,7 +28,7 @@ func (d *dbCommand) Create(ctx context.Context, in *rate.Rate) (err error) {
 }
 
 func (d *dbCommand) Update(ctx context.Context, in *rate.Rate) (err error) {
-	rt := &models.Rate{}
+	rt := &models2.Rate{}
 	rt.FromDomain(in)
 	if in.ID() == "" {
 		return errors.New("record not found")
@@ -39,7 +39,7 @@ func (d *dbCommand) Update(ctx context.Context, in *rate.Rate) (err error) {
 }
 
 func (d *dbCommand) Delete(ctx context.Context, in *rate.Rate) (err error) {
-	rt := &models.Rate{}
+	rt := &models2.Rate{}
 	rt.FromDomain(in)
 	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return tx.Delete(rt).Error

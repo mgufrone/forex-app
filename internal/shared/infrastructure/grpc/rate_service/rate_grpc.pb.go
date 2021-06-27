@@ -22,6 +22,8 @@ type RateServiceClient interface {
 	GetAll(ctx context.Context, in *RateFilter, opts ...grpc.CallOption) (*RateData, error)
 	Count(ctx context.Context, in *RateFilter, opts ...grpc.CallOption) (*RateCountResult, error)
 	GetAndCount(ctx context.Context, in *RateFilter, opts ...grpc.CallOption) (*RateCount, error)
+	Latest(ctx context.Context, in *DateFilter, opts ...grpc.CallOption) (*RateData, error)
+	History(ctx context.Context, in *SpanFilter, opts ...grpc.CallOption) (*RateData, error)
 	// write
 	Create(ctx context.Context, in *Rate, opts ...grpc.CallOption) (*Rate, error)
 	Update(ctx context.Context, in *Rate, opts ...grpc.CallOption) (*Rate, error)
@@ -63,6 +65,24 @@ func (c *rateServiceClient) GetAndCount(ctx context.Context, in *RateFilter, opt
 	return out, nil
 }
 
+func (c *rateServiceClient) Latest(ctx context.Context, in *DateFilter, opts ...grpc.CallOption) (*RateData, error) {
+	out := new(RateData)
+	err := c.cc.Invoke(ctx, "/service.RateService/Latest", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rateServiceClient) History(ctx context.Context, in *SpanFilter, opts ...grpc.CallOption) (*RateData, error) {
+	out := new(RateData)
+	err := c.cc.Invoke(ctx, "/service.RateService/History", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rateServiceClient) Create(ctx context.Context, in *Rate, opts ...grpc.CallOption) (*Rate, error) {
 	out := new(Rate)
 	err := c.cc.Invoke(ctx, "/service.RateService/Create", in, out, opts...)
@@ -98,6 +118,8 @@ type RateServiceServer interface {
 	GetAll(context.Context, *RateFilter) (*RateData, error)
 	Count(context.Context, *RateFilter) (*RateCountResult, error)
 	GetAndCount(context.Context, *RateFilter) (*RateCount, error)
+	Latest(context.Context, *DateFilter) (*RateData, error)
+	History(context.Context, *SpanFilter) (*RateData, error)
 	// write
 	Create(context.Context, *Rate) (*Rate, error)
 	Update(context.Context, *Rate) (*Rate, error)
@@ -117,6 +139,12 @@ func (UnimplementedRateServiceServer) Count(context.Context, *RateFilter) (*Rate
 }
 func (UnimplementedRateServiceServer) GetAndCount(context.Context, *RateFilter) (*RateCount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAndCount not implemented")
+}
+func (UnimplementedRateServiceServer) Latest(context.Context, *DateFilter) (*RateData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Latest not implemented")
+}
+func (UnimplementedRateServiceServer) History(context.Context, *SpanFilter) (*RateData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method History not implemented")
 }
 func (UnimplementedRateServiceServer) Create(context.Context, *Rate) (*Rate, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
@@ -194,6 +222,42 @@ func _RateService_GetAndCount_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RateService_Latest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DateFilter)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RateServiceServer).Latest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RateService/Latest",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RateServiceServer).Latest(ctx, req.(*DateFilter))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RateService_History_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SpanFilter)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RateServiceServer).History(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.RateService/History",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RateServiceServer).History(ctx, req.(*SpanFilter))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RateService_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Rate)
 	if err := dec(in); err != nil {
@@ -266,6 +330,14 @@ var RateService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAndCount",
 			Handler:    _RateService_GetAndCount_Handler,
+		},
+		{
+			MethodName: "Latest",
+			Handler:    _RateService_Latest_Handler,
+		},
+		{
+			MethodName: "History",
+			Handler:    _RateService_History_Handler,
 		},
 		{
 			MethodName: "Create",
