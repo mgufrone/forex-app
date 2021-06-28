@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/mgufrone/forex/internal/domains/rate"
 	"github.com/mgufrone/forex/internal/domains/rate/mock"
+	"github.com/mgufrone/forex/internal/shared/criteria"
 	"github.com/mgufrone/forex/internal/shared/infrastructure/grpc/rate_service"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
@@ -136,7 +137,85 @@ func (g *grpcTest) TestCount() {
 	}
 }
 func (g *grpcTest) TestGetLatest() {
-	
+	type mockResponse struct {
+		rates []*rate.Rate
+		err error
+	}
+	testCases := []struct{
+		in *rate_service.DateFilter
+		cb func(cb criteria.ICriteriaBuilder) criteria.ICriteriaBuilder
+		mockResponse mockResponse
+		shouldError bool
+	}{
+		{
+			nil,
+			func(cb criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
+				return cb
+			},
+			mockResponse{
+				rates: nil,
+				err:   errors.New("something went wrong"),
+			},
+			true,
+		},
+		{
+			&rate_service.DateFilter{Date: time.Now().Unix()},
+			func(cb criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
+				return cb
+			},
+			mockResponse{
+				rates: nil,
+				err:   errors.New("something went wrong"),
+			},
+			true,
+		},
+		{
+			&rate_service.DateFilter{
+				Date:   time.Now().Unix(),
+				Filter: nil,
+			},
+			func(cb criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
+				return cb
+			},
+			mockResponse{
+				rates: []*rate.Rate{rate.NewRate("", "", "", "", 0.2, 0.1, time.Now())},
+				err: nil,
+			},
+			false,
+		},
+	}
+	for _, c := range testCases {
+		g.query.Calls = []mock2.Call{}
+		g.query.ExpectedCalls = []*mock2.Call{}
+		cb := &mock.CriteriaMock{}
+		cb.On("Where", mock2.Anything).Return(cb)
+		cb.On("Paginate", mock2.Anything, mock2.Anything).Return(cb)
+		cb.On("Order", mock2.Anything, mock2.Anything).Return(cb)
+		g.query.On("CriteriaBuilder").Once().Return(cb)
+		g.query.On("Apply", mock2.Anything).Once().Return(g.query)
+		g.query.On("Latest", mock2.Anything, mock2.Anything).
+			Once().
+			Return(c.mockResponse.rates, c.mockResponse.err)
+		res, err := g.handler.Latest(context.Background(), c.in)
+		if c.shouldError {
+			assert.NotNil(g.T(), err)
+			assert.Nil(g.T(), res)
+			continue
+		}
+		assert.Nil(g.T(), err)
+		assert.NotNil(g.T(), res)
+		arg, _ := g.query.Calls[2].Arguments.Get(1).(time.Time)
+		assert.Equal(g.T(), c.in.Date, arg.Unix())
+		g.query.AssertNumberOfCalls(g.T(), "Latest", 1)
+		g.query.AssertExpectations(g.T())
+		for i, r := range res.GetData() {
+			assert.Equal(g.T(), r.GetId(), c.mockResponse.rates[i].ID())
+			assert.Equal(g.T(), r.GetSell(), c.mockResponse.rates[i].Sell())
+			assert.Equal(g.T(), r.GetBuy(), c.mockResponse.rates[i].Buy())
+			assert.Equal(g.T(), r.GetBuy(), c.mockResponse.rates[i].Buy())
+			assert.Equal(g.T(), r.GetBase(), c.mockResponse.rates[i].Base())
+		}
+	}
 }
 
 func TestGrpcHandler(t *testing.T) {

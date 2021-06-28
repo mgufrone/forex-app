@@ -7,6 +7,7 @@ import (
 	"github.com/mgufrone/forex/internal/shared/infrastructure/grpc/rate_service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"time"
 )
 
 type grpcHandler struct {
@@ -20,7 +21,13 @@ func NewGrpcHandler(command rate.ICommand, query rate.IQuery) rate_service.RateS
 }
 
 func (g *grpcHandler) applyQuery(cb criteria.ICriteriaBuilder, query []*rate_service.RateQuery) criteria.ICriteriaBuilder {
+	if len(query) == 0 {
+		return cb
+	}
 	for _, q := range query {
+		if q == nil {
+			continue
+		}
 		op := criteria.Operator(q.GetOperator())
 		cb = cb.Where(
 			criteria.NewCondition(q.GetField(), op, q.GetValue()),
@@ -47,7 +54,23 @@ func (g *grpcHandler) applyCriteriaBuilder(filter *rate_service.RateFilter) crit
 }
 
 func (g *grpcHandler) Latest(ctx context.Context, filter *rate_service.DateFilter) (*rate_service.RateData, error) {
-	return nil, nil
+	if filter == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid argument filter")
+	}
+	cb := g.applyQuery(g.query.CriteriaBuilder(), []*rate_service.RateQuery{filter.GetFilter()})
+	res, err := g.query.Apply(cb).Latest(ctx, time.Unix(filter.Date, 0))
+	if err != nil {
+		return nil, err
+	}
+	out := &rate_service.RateData{
+		Data: make([]*rate_service.Rate, len(res)),
+	}
+	for idx, r := range res {
+		var mdl rate_service.Rate
+		mdl.FromDomain(r)
+		out.Data[idx] = &mdl
+	}
+	return out, nil
 }
 func (g *grpcHandler) History(ctx context.Context, span *rate_service.SpanFilter) (*rate_service.RateData, error) {
 	return nil, nil

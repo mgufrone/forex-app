@@ -171,9 +171,6 @@ func (rp *dbRepositoryTest) TestHistory02Gap() {
 	res, err := rp.repo.History(context.Background(), span, time.Now(), time.Now().Add(-time.Hour))
 	assert.Nil(rp.T(), err)
 	assert.Len(rp.T(), res, 60)
-	for _, r := range res {
-		fmt.Println(r.ID(), r.UpdatedAt())
-	}
 }
 
 func TestQuery(t *testing.T) {
