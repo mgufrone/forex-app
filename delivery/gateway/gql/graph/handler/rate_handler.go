@@ -25,7 +25,7 @@ func (r *rateHandler) applyFilter(cb criteria.ICriteriaBuilder, filter *model.Ra
 		rate.WhereSourceType(filter.Source),
 		rate.WhereSymbol(filter.Symbol),
 		rate.WhereBase(filter.Base),
-		rate.WhereDate(filter.Date),
+		rate.SavedAt(filter.Date),
 	)
 	return cb
 }

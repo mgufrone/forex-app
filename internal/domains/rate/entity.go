@@ -2,6 +2,7 @@ package rate
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 )
 
@@ -41,6 +42,7 @@ func (r *Rate) UnmarshalJSON(bytes []byte) error {
 	if err != nil {
 		return err
 	}
+
 
 	if base, ok := maps[BaseColumn].(string); ok {
 		r.SetBase(base)
@@ -92,8 +94,12 @@ func (r *Rate) Base() string {
 	return r.base
 }
 
-func (r *Rate) SetBase(base string) {
+func (r *Rate) SetBase(base string) (err error) {
+	if base == "" || len(base) > 5 {
+		return errors.New("invalid base value")
+	}
 	r.base = base
+	return
 }
 
 func (r *Rate) Symbol() string {
@@ -108,8 +114,12 @@ func (r *Rate) Source() string {
 	return r.source
 }
 
-func (r *Rate) SetSource(source string) {
+func (r *Rate) SetSource(source string) (err error) {
+	if source == "" {
+		return errors.New("invalid source value")
+	}
 	r.source = source
+	return
 }
 
 func (r *Rate) SourceType() string {

@@ -6,6 +6,9 @@ import (
 )
 
 func SavedAt(date time.Time) criteria.ICondition {
+	if date.IsZero() {
+		return nil
+	}
 	return criteria.NewCondition(UpdatedAtColumn, criteria.Eq, date)
 }
 
@@ -33,12 +36,6 @@ func WhereBase(base string) criteria.ICondition {
 		return nil
 	}
 	return criteria.NewCondition(BaseColumn, criteria.Eq, base)
-}
-func WhereDate(date time.Time) criteria.ICondition {
-	if date.IsZero() {
-		return nil
-	}
-	return criteria.NewCondition(UpdatedAtColumn, criteria.Eq, date)
 }
 
 func SavedBetween(start, end time.Time) criteria.ICondition {
