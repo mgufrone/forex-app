@@ -134,8 +134,8 @@ func (rp *dbRepositoryTest) TestHistory00Simple() {
 			Symbol:     "usd",
 			Source:     "bank1",
 			SourceType: "enote",
-			Sell:       0.1 * float64(i),
-			Buy:        0.2 * float64(i),
+			Sell:       0.1 * float64(i + 1),
+			Buy:        0.2 * float64(i + 1),
 			UpdatedAt:  now.Add(-(time.Hour - (time.Minute * time.Duration(i)))),
 		}
 	}
@@ -162,8 +162,8 @@ func (rp *dbRepositoryTest) TestHistory02Gap() {
 			Symbol:     "usd",
 			Source:     "bank1",
 			SourceType: "enote",
-			Sell:       0.1 * float64(i),
-			Buy:        0.2 * float64(i),
+			Sell:       0.1 * float64(i + 1),
+			Buy:        0.2 * float64(i + 1),
 			UpdatedAt:  time.Now().Add(-(time.Hour - (time.Minute * 5 * time.Duration(i)))),
 		}
 	}

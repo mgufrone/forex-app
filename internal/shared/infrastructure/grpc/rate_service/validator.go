@@ -26,3 +26,16 @@ func (x *SpanFilter) Validate() error {
 		validation.Field(&x.Span, validation.In(ins)),
 	)
 }
+
+type ValidationMode int
+
+const (
+	ValidationCreate ValidationMode = iota
+	ValidationUpdate
+	ValidationDelete
+)
+
+func (x *Rate) Validate(mode ValidationMode) error {
+	_, err := x.ToDomain()
+	return err
+}

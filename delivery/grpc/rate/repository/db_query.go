@@ -55,8 +55,10 @@ func (d *dbQuery) resolveRate(rates []*models2.Rate, prev *rate.Rate, span rate.
 			return mdl
 		}
 	}
-	cp := prev.Copy()
-	cp.SetUpdatedAt(tm)
+	cp, err := prev.Copy()
+	if err == nil && cp != nil {
+		cp.SetUpdatedAt(tm)
+	}
 	return cp
 }
 func (d *dbQuery) History(ctx context.Context, span rate.TimeSpan, start, end time.Time) (out []*rate.Rate, err error) {
@@ -89,7 +91,7 @@ func (d *dbQuery) History(ctx context.Context, span rate.TimeSpan, start, end ti
 		if i != 0 {
 			prev = out[(total)-i]
 		}
-		revIdx := (total-1)-i
+		revIdx := (total - 1) - i
 		out[revIdx] = d.resolveRate(res, prev, span, start.Add(-(time.Duration(revIdx) * span.ToDuration())))
 	}
 	return

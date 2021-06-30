@@ -64,7 +64,7 @@ func (b *bniWorker) Run(ctx context.Context) ([]*rate.Rate, error) {
 			sellString := strings.TrimSpace(tds.Eq(2).Text())
 			buy, _ := toFloat(buyString)
 			sell, _ := toFloat(sellString)
-			curRate := rate.NewRate("IDR", code, "bca", types[i], sell, buy, updatedAt)
+			curRate, _ := rate.NewRate("IDR", code, "bca", types[i], sell, buy, updatedAt)
 			entities = append(entities, curRate)
 		})
 	})

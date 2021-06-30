@@ -80,7 +80,7 @@ func (m *mandiriWorker) Run(ctx context.Context) ([]*rate.Rate, error) {
 			sellString := strings.TrimSpace(vals.Eq(sellIdx).Text())
 			buy, _ := toFloat(buyString)
 			sell, _ := toFloat(sellString)
-			entities[idx] = rate.NewRate("IDR", code, "mandiri", v, sell, buy, dates[i2])
+			entities[idx], _ = rate.NewRate("IDR", code, "mandiri", v, sell, buy, dates[i2])
 			idx++
 		}
 

@@ -3,6 +3,7 @@ package rate
 import (
 	"encoding/json"
 	"errors"
+	"github.com/mgufrone/forex/internal/shared/common"
 	"time"
 )
 
@@ -106,8 +107,12 @@ func (r *Rate) Symbol() string {
 	return r.symbol
 }
 
-func (r *Rate) SetSymbol(symbol string) {
+func (r *Rate) SetSymbol(symbol string) (err error) {
+	if symbol == "" || len(symbol) > 5 {
+		return errors.New("invalid symbol value")
+	}
 	r.symbol = symbol
+	return
 }
 
 func (r *Rate) Source() string {
@@ -126,36 +131,52 @@ func (r *Rate) SourceType() string {
 	return r.sourceType
 }
 
-func (r *Rate) SetSourceType(sourceType string) {
+func (r *Rate) SetSourceType(sourceType string) (err error) {
+	if sourceType == "" {
+		return errors.New("invalid sourceType value")
+	}
 	r.sourceType = sourceType
+	return
 }
 
 func (r *Rate) Sell() float64 {
 	return r.sell
 }
 
-func (r *Rate) SetSell(sell float64) {
+func (r *Rate) SetSell(sell float64) (err error) {
+	if !(sell > 0.0) {
+		return errors.New("invalid sell value")
+	}
 	r.sell = sell
+	return
 }
 
 func (r *Rate) Buy() float64 {
 	return r.buy
 }
 
-func (r *Rate) SetBuy(buy float64) {
+func (r *Rate) SetBuy(buy float64) (err error){
+	if !(buy > 0.0) {
+		return errors.New("invalid buy value")
+	}
 	r.buy = buy
+	return
 }
 
 func (r *Rate) UpdatedAt() time.Time {
 	return r.updatedAt
 }
 
-func (r *Rate) SetUpdatedAt(date time.Time) {
+func (r *Rate) SetUpdatedAt(date time.Time) (err error) {
+	if date.IsZero() {
+		return errors.New("invalid updated_at value")
+	}
 	r.updatedAt = date
+	return
 }
 
-func (r *Rate) Copy() *Rate {
-	rt := NewRate(
+func (r *Rate) Copy() (*Rate, error) {
+	rt, err := NewRate(
 		r.Base(),
 		r.Symbol(),
 		r.Source(),
@@ -164,10 +185,38 @@ func (r *Rate) Copy() *Rate {
 		r.Buy(),
 		r.UpdatedAt(),
 	)
+	if err != nil {
+		return nil, err
+	}
 	rt.SetID(r.ID())
-	return rt
+	return rt, nil
 }
 
-func NewRate(base, symbol, source, sourceType string, sell float64, buy float64, date time.Time) *Rate {
-	return &Rate{base: base, symbol: symbol, source: source, sourceType: sourceType, sell: sell, buy: buy, updatedAt: date}
+func MustNew(base, symbol, source, sourceType string, sell, buy float64, date time.Time) (res *Rate) {
+	var err error
+	if res, err = NewRate(base, symbol, source, sourceType, sell, buy, date); err != nil {
+		panic(err)
+	}
+	return
+}
+func NewRate(base, symbol, source, sourceType string, sell, buy float64, date time.Time) (*Rate, error) {
+	var rt Rate
+	if err := common.TryOrError(func() error {
+		return rt.SetBase(base)
+	}, func() error {
+		return rt.SetSymbol(symbol)
+	}, func() error {
+		return rt.SetSource(source)
+	}, func() error {
+		return rt.SetSourceType(sourceType)
+	}, func() error {
+		return rt.SetSell(sell)
+	}, func() error {
+		return rt.SetBuy(buy)
+	}, func() error {
+		return rt.SetUpdatedAt(date)
+	}); err != nil {
+		return nil, err
+	}
+	return &rt, nil
 }

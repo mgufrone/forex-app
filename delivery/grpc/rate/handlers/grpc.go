@@ -133,7 +133,10 @@ func (g *grpcHandler) GetAndCount(ctx context.Context, filter *rate_service.Rate
 }
 
 func (g *grpcHandler) Create(ctx context.Context, r *rate_service.Rate) (*rate_service.Rate, error) {
-	rt := r.ToDomain()
+	rt, err := r.ToDomain()
+	if err != nil {
+		return nil, err
+	}
 	// ensure data insertion is unique
 	cb := g.query.CriteriaBuilder().Where(
 		rate.WhereSymbol(rt.Symbol()),
@@ -156,11 +159,15 @@ func (g *grpcHandler) Create(ctx context.Context, r *rate_service.Rate) (*rate_s
 }
 
 func (g *grpcHandler) Update(ctx context.Context, r *rate_service.Rate) (*rate_service.Rate, error) {
-	return r, g.command.Update(ctx, r.ToDomain())
+	u, err := r.ToDomain()
+	if err != nil {
+		return nil, err
+	}
+	return r, g.command.Update(ctx, u)
 }
 
 func (g *grpcHandler) Delete(ctx context.Context, r *rate_service.Rate) (*rate_service.RateResult, error) {
-	rt := r.ToDomain()
+	rt, _ := r.ToDomain()
 	err := g.command.Delete(ctx, rt)
 	return &rate_service.RateResult{Ok: err != nil}, err
 }

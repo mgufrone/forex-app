@@ -19,9 +19,9 @@ func (x *Rate) FromDomain(in *rate.Rate) {
 	x.UpdatedAt = in.UpdatedAt().Unix()
 	x.Id = in.ID()
 }
-func (x *Rate) ToDomain() *rate.Rate {
+func (x *Rate) ToDomain() (*rate.Rate, error) {
 	t := time.Unix(x.GetUpdatedAt(), 0)
-	rt := rate.NewRate(
+	rt, err := rate.NewRate(
 		x.GetBase(),
 		x.GetSymbol(),
 		x.GetSource(),
@@ -30,8 +30,11 @@ func (x *Rate) ToDomain() *rate.Rate {
 		x.GetSell(),
 		t,
 	)
+	if err != nil {
+		return nil, err
+	}
 	if x.GetId() != "" {
 		rt.SetID(x.GetId())
 	}
-	return rt
+	return rt, nil
 }

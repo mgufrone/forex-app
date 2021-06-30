@@ -101,7 +101,7 @@ func (b *bcaWorker) Run(ctx context.Context) ([]*rate.Rate, error) {
 			sellString := strings.TrimSpace(vals.Eq(sellIdx).Text())
 			buy, _ := toFloat(buyString)
 			sell, _ := toFloat(sellString)
-			entities[idx] = rate.NewRate("IDR", code, "bca", v, sell, buy, updatedAt)
+			entities[idx], _ = rate.NewRate("IDR", code, "bca", v, sell, buy, updatedAt)
 			idx ++
 		}
 

@@ -43,7 +43,7 @@ func (g *grpcTest) TestGetAll() {
 		{nil, nil, true},
 		{nil, nil, false},
 		{nil, []*rate.Rate{
-			rate.NewRate("a", "b", "c", "d", 0.1, 0.2, time.Now()),
+			rate.MustNew("a", "b", "c", "d", 0.1, 0.2, time.Now()),
 		}, false},
 	}
 	for idx, c := range testCases {
@@ -78,7 +78,7 @@ func (g *grpcTest) TestGetAndCount() {
 		{nil, nil, true},
 		{nil, nil, false},
 		{nil, []*rate.Rate{
-			rate.NewRate("a", "b", "c", "d", 0.1, 0.2, time.Now()),
+			rate.MustNew("a", "b", "c", "d", 0.1, 0.2, time.Now()),
 		}, false},
 	}
 	for idx, c := range testCases {
@@ -178,7 +178,7 @@ func (g *grpcTest) TestGetLatest() {
 				return cb
 			},
 			mockResponse{
-				rates: []*rate.Rate{rate.NewRate("", "", "", "", 0.2, 0.1, time.Now())},
+				rates: []*rate.Rate{rate.MustNew("usd", "idr", "a", "b", 0.2, 0.1, time.Now())},
 				err: nil,
 			},
 			false,
@@ -260,7 +260,7 @@ func (g *grpcTest) TestHistory() {
 				return cb
 			},
 			mockResponse{
-				rates: []*rate.Rate{rate.NewRate("", "", "", "", 0.2, 0.1, time.Now())},
+				rates: []*rate.Rate{rate.MustNew("usd", "idr", "a", "b", 0.2, 0.1, time.Now())},
 				err: nil,
 			},
 			false,
@@ -304,8 +304,146 @@ func (g *grpcTest) TestHistory() {
 	}
 }
 
-func (g *grpcTest) TestCreateNew() {
+func (g *grpcTest) reset() {
+	g.query.Calls = []mock2.Call{}
+	g.query.ExpectedCalls = []*mock2.Call{}
+	g.command.Calls = []mock2.Call{}
+	g.command.ExpectedCalls = []*mock2.Call{}
+}
+func (g *grpcTest) TestCreate() {
+	//possible cases
+	// 0. invalid input
+	// 1. purely new
+	// 2. existing
+	// 3. db error, retry
+	testCases := []struct{
+		in *rate_service.Rate
+		mockQuery func(q rate.IQuery) criteria.ICriteriaBuilder
+		mockCommand func(c rate.ICommand)
+		shouldError bool
+		countCalls int
+		createCalls int
+	}{
+		{
+			nil,
+			func(q rate.IQuery) criteria.ICriteriaBuilder	 {
+				return nil
+			},
+			func(c rate.ICommand) {
 
+			},
+			true,
+			0,
+			0,
+		},
+		{
+			&rate_service.Rate{
+				Id:         "",
+				Base:       "",
+				Symbol:     "",
+				Source:     "",
+				SourceType: "",
+				Sell:       0,
+				Buy:        0,
+				UpdatedAt:  0,
+			},
+			func(q rate.IQuery) criteria.ICriteriaBuilder {
+				return nil
+			},
+			func(c rate.ICommand) {
+
+			},
+			true,
+			0,
+			0,
+		},
+		{
+			&rate_service.Rate{
+				Id:         "",
+				Base:       "idr",
+				Symbol:     "usd",
+				Source:     "something",
+				SourceType: "something",
+				Sell:       0.1212,
+				Buy:        0.2323,
+				UpdatedAt:  time.Now().Unix(),
+			},
+			func(q rate.IQuery) criteria.ICriteriaBuilder {
+				qm := q.(*mock.QueryMock)
+				cb := &criteria.MockCriteria{}
+				cb.On("Where", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Once().Return(cb)
+				qm.On("CriteriaBuilder").Once().Return(cb)
+				qm.On("Apply", mock2.Anything).Once().Return(qm)
+				qm.On("Count", mock2.Anything).Return(int64(0), nil)
+				return cb
+			},
+			func(c rate.ICommand) {
+				c.(*mock.CommandMock).On("Create", mock2.Anything, mock2.AnythingOfType("*rate.Rate")).Once().Return(nil)
+			},
+			false,
+			1,
+			1,
+		},
+		{
+			&rate_service.Rate{
+				Id:         "",
+				Base:       "idr",
+				Symbol:     "usd",
+				Source:     "something",
+				SourceType: "something",
+				Sell:       0.1212,
+				Buy:        0.2323,
+				UpdatedAt:  time.Now().Unix(),
+			},
+			func(q rate.IQuery) criteria.ICriteriaBuilder {
+				qm := q.(*mock.QueryMock)
+				cb := &criteria.MockCriteria{}
+				cb.On("Where", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).Once().Return(cb)
+				qm.On("CriteriaBuilder").Once().Return(cb)
+				qm.On("Apply", mock2.Anything).Once().Return(qm)
+				qm.On("Count", mock2.Anything).Return(int64(0), nil)
+				return cb
+			},
+			func(c rate.ICommand) {
+				c.(*mock.CommandMock).On("Create", mock2.Anything, mock2.AnythingOfType("*rate.Rate")).Once().Return(nil)
+			},
+			false,
+			1,
+			1,
+		},
+	}
+	for _, c := range testCases {
+		g.reset()
+		cb := c.mockQuery(g.query)
+		c.mockCommand(g.command)
+		res, err := g.handler.Create(context.Background(), c.in)
+		g.query.AssertNumberOfCalls(g.T(), "Count", c.countCalls)
+		g.command.AssertNumberOfCalls(g.T(), "Create", c.createCalls)
+		if c.countCalls > 0 {
+			arg := cb.(*criteria.MockCriteria).Calls[0].Arguments
+			assert.Equal(g.T(),
+				criteria.NewCondition(rate.SymbolColumn, criteria.Eq, c.in.GetSymbol()),
+				arg[0],
+			)
+			assert.Equal(g.T(),
+				criteria.NewCondition(rate.SourceColumn, criteria.Eq, c.in.GetSource()),
+				arg[1],
+			)
+			assert.Equal(g.T(),
+				criteria.NewCondition(rate.SourceTypeColumn, criteria.Eq, c.in.GetSourceType()),
+				arg[2],
+			)
+			assert.Equal(g.T(),
+				criteria.NewCondition(rate.UpdatedAtColumn, criteria.Eq, time.Unix(c.in.GetUpdatedAt(), 0)),
+				arg[3],
+			)
+		}
+		if c.shouldError {
+			assert.Nil(g.T(), res)
+			assert.NotNil(g.T(), err)
+			continue
+		}
+	}
 }
 
 func TestGrpcHandler(t *testing.T) {

@@ -77,7 +77,7 @@ func (r *rateHandlerTest) TestLatest() {
 				return cb
 			},
 			&mockResponse{
-				[]*rate.Rate{rate.NewRate("abc", "def", "bank1", "enote", 0.1, 0.2, time.Now())},
+				[]*rate.Rate{rate.MustNew("abc", "def", "bank1", "enote", 0.1, 0.2, time.Now())},
 				nil,
 			},
 			false,

@@ -19,7 +19,7 @@ func (m *Rate) ToDomain() *rate.Rate {
 	if m == nil {
 		return nil
 	}
-	rt := rate.NewRate(
+	rt, _ := rate.NewRate(
 		m.Base,
 		m.Symbol,
 		m.Source,

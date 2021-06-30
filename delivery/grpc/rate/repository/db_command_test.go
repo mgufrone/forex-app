@@ -36,7 +36,7 @@ func (rp *dbCommandTest) TearDownSuite() {
 }
 
 func (rp *dbCommandTest) Test01Insert() {
-	rt := rate.NewRate(
+	rt := rate.MustNew(
 		"abc",
 		"bcd",
 		"somesite",
@@ -62,7 +62,7 @@ func (rp *dbCommandTest) Test02Update() {
 	assert.Equal(rp.T(), int64(1), total)
 	rp.db.Model(&models2.Rate{}).Where("symbol = ?", "bcd").Count(&total)
 	assert.Equal(rp.T(), int64(0), total)
-	empty := rate.NewRate("base", "symbol", "something", "something", 0.01, 0.02, time.Now())
+	empty := rate.MustNew("base", "symb", "something", "something", 0.01, 0.02, time.Now())
 	err = rp.repo.Update(context.Background(), empty)
 	assert.NotNil(rp.T(), err)
 }

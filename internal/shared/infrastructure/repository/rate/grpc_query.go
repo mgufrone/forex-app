@@ -21,7 +21,7 @@ func (q *queryGrpc) Latest(ctx context.Context, date time.Time) (out []*rate.Rat
 	}
 	out = make([]*rate.Rate, len(res.GetData()))
 	for idx, data := range res.GetData() {
-		out[idx] = data.ToDomain()
+		out[idx], _ = data.ToDomain()
 	}
 	return
 }
@@ -33,7 +33,7 @@ func (q *queryGrpc) History(ctx context.Context, span rate.TimeSpan, start, end 
 	}
 	out = make([]*rate.Rate, len(res.GetData()))
 	for idx, data := range res.GetData() {
-		out[idx] = data.ToDomain()
+		out[idx], _ = data.ToDomain()
 	}
 	return
 }
