@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"strings"
+	"time"
 )
 
 type dbCriteriaBuilder struct {
@@ -112,12 +113,25 @@ func operator(condition criteria.ICondition) string {
 		return "in"
 	case criteria.NotIn:
 		return "not in"
+	case criteria.Between:
+		return "between"
 	}
 	return ""
 }
+
 func value(operator criteria.ICondition) interface{} {
 	if operator.Operator() == criteria.Like || operator.Operator() == criteria.NotLike {
 		return fmt.Sprintf("%%%s%%", operator.Value())
+	}
+	if operator.Operator() == criteria.Between {
+		var res []interface{}
+		switch v := operator.Value().(type) {
+		case []time.Time:
+			for _, v1 := range v {
+				res = append(res, v1)
+			}
+		}
+		return res
 	}
 	return operator.Value()
 }
@@ -152,6 +166,11 @@ func (d dbCriteriaBuilder) apply(db *gorm.DB) *gorm.DB {
 	if len(d.conditions) > 0 {
 		ses := db.WithContext(context.TODO())
 		for _, r := range d.conditions {
+			if r.Operator() == criteria.Between {
+				ints := value(r).([]interface{})
+				ses = ses.Where(fmt.Sprintf("%s BETWEEN ? and ?", r.Field()), ints[0], ints[1])
+				continue
+			}
 			ses = ses.Where(fmt.Sprintf("%s %s ?", r.Field(), operator(r)), value(r))
 		}
 		db = db.Where(ses)

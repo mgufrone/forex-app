@@ -81,7 +81,7 @@ func (d *dbQuery) History(ctx context.Context, span rate.TimeSpan, start, end ti
 	case rate.FiveMinute:
 		total = int(math.Ceil(diff.Minutes() / 5))
 	case rate.Minute:
-		total = int(diff.Minutes()) + 1
+		total = int(math.Ceil(diff.Minutes()))
 	}
 	out = make([]*rate.Rate, total)
 	for i := 0; i < total; i++ {
