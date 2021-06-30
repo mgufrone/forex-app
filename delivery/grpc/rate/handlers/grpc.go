@@ -73,7 +73,23 @@ func (g *grpcHandler) Latest(ctx context.Context, filter *rate_service.DateFilte
 	return out, nil
 }
 func (g *grpcHandler) History(ctx context.Context, span *rate_service.SpanFilter) (*rate_service.RateData, error) {
-	return nil, nil
+	if err := span.Validate(); err != nil {
+		return nil, err
+	}
+	cb := g.applyQuery(g.query.CriteriaBuilder(), []*rate_service.RateQuery{span.GetFilter()})
+	res, err := g.query.Apply(cb).History(ctx, rate.TimeSpan(span.GetSpan()), time.Unix(span.GetStart(), 0), time.Unix(span.GetEnd(), 0))
+	if err != nil {
+		return nil, err
+	}
+	out := &rate_service.RateData{
+		Data: make([]*rate_service.Rate, len(res)),
+	}
+	for idx, r := range res {
+		var mdl rate_service.Rate
+		mdl.FromDomain(r)
+		out.Data[idx] = &mdl
+	}
+	return out, nil
 }
 
 func (g *grpcHandler) GetAll(ctx context.Context, filter *rate_service.RateFilter) (*rate_service.RateData, error) {

@@ -120,13 +120,7 @@ func (d *dbQuery) apply(ctx context.Context) *gorm.DB {
 }
 
 func (d *dbQuery) GetAll(ctx context.Context) (out []*rate.Rate, err error) {
-	res, total, err := d.GetAndCount(ctx)
-	if err != nil || total == 0 {
-		return
-	}
-	for _, r := range res {
-		out = append(out, r)
-	}
+	out, _, err = d.GetAndCount(ctx)
 	return
 }
 

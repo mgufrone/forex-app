@@ -20,8 +20,6 @@ import (
 	"os"
 )
 
-const defaultPort = "8080"
-
 func grpcClient() (rate_service.RateServiceClient, error) {
 	host := fmt.Sprintf("%s:%s", os.Getenv("RATE_SERVICE_HOST"), os.Getenv("RATE_SERVICE_PORT"))
 	cli, err := grpc.Dial(

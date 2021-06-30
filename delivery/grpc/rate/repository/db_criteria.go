@@ -36,7 +36,15 @@ func (d dbCriteriaBuilder) Order(field string, direction string) criteria.ICrite
 }
 
 func (d dbCriteriaBuilder) Copy() criteria.ICriteriaBuilder {
-	return dbCriteriaBuilder{}
+	return dbCriteriaBuilder{
+		conditions: d.conditions,
+		ands:       d.ands,
+		ors:        d.ors,
+		pagination: d.pagination,
+		selects:    d.selects,
+		sort:       d.sort,
+		group:      d.group,
+	}
 }
 
 func (d dbCriteriaBuilder) Select(fields ...string) criteria.ICriteriaBuilder {

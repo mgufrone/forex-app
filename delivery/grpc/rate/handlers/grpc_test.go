@@ -217,6 +217,96 @@ func (g *grpcTest) TestGetLatest() {
 		}
 	}
 }
+func (g *grpcTest) TestHistory() {
+	type mockResponse struct {
+		rates []*rate.Rate
+		err error
+	}
+	testCases := []struct{
+		in *rate_service.SpanFilter
+		cb func(cb criteria.ICriteriaBuilder) criteria.ICriteriaBuilder
+		mockResponse mockResponse
+		shouldError bool
+	}{
+		{
+			nil,
+			func(cb criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
+				return cb
+			},
+			mockResponse{
+				rates: nil,
+				err:   errors.New("something went wrong"),
+			},
+			true,
+		},
+		{
+			&rate_service.SpanFilter{Span: int32(rate.Daily)},
+			func(cb criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
+				return cb
+			},
+			mockResponse{
+				rates: nil,
+				err:   errors.New("something went wrong"),
+			},
+			true,
+		},
+		{
+			&rate_service.SpanFilter{
+				Start: time.Now().Unix(),
+				End: time.Now().Add(time.Hour).Unix(),
+				Span: int32(rate.Daily),
+			},
+			func(cb criteria.ICriteriaBuilder) criteria.ICriteriaBuilder {
+				return cb
+			},
+			mockResponse{
+				rates: []*rate.Rate{rate.NewRate("", "", "", "", 0.2, 0.1, time.Now())},
+				err: nil,
+			},
+			false,
+		},
+	}
+	for _, c := range testCases {
+		g.query.Calls = []mock2.Call{}
+		g.query.ExpectedCalls = []*mock2.Call{}
+		cb := &mock.CriteriaMock{}
+		cb.On("Where", mock2.Anything).Return(cb)
+		cb.On("Paginate", mock2.Anything, mock2.Anything).Return(cb)
+		cb.On("Order", mock2.Anything, mock2.Anything).Return(cb)
+		g.query.On("CriteriaBuilder").Once().Return(cb)
+		g.query.On("Apply", mock2.Anything).Once().Return(g.query)
+		g.query.On("History", mock2.Anything, mock2.Anything, mock2.Anything, mock2.Anything).
+			Once().
+			Return(c.mockResponse.rates, c.mockResponse.err)
+		res, err := g.handler.History(context.Background(), c.in)
+		if c.shouldError {
+			assert.NotNil(g.T(), err)
+			assert.Nil(g.T(), res)
+			continue
+		}
+		assert.Nil(g.T(), err)
+		assert.NotNil(g.T(), res)
+		arg, _ := g.query.Calls[2].Arguments.Get(1).(rate.TimeSpan)
+		arg1, _ := g.query.Calls[2].Arguments.Get(2).(time.Time)
+		arg2, _ := g.query.Calls[2].Arguments.Get(3).(time.Time)
+		assert.Equal(g.T(), c.in.Span, int32(arg))
+		assert.Equal(g.T(), c.in.Start, arg1.Unix())
+		assert.Equal(g.T(), c.in.End, arg2.Unix())
+		g.query.AssertNumberOfCalls(g.T(), "History", 1)
+		g.query.AssertExpectations(g.T())
+		for i, r := range res.GetData() {
+			assert.Equal(g.T(), r.GetId(), c.mockResponse.rates[i].ID())
+			assert.Equal(g.T(), r.GetSell(), c.mockResponse.rates[i].Sell())
+			assert.Equal(g.T(), r.GetBuy(), c.mockResponse.rates[i].Buy())
+			assert.Equal(g.T(), r.GetBuy(), c.mockResponse.rates[i].Buy())
+			assert.Equal(g.T(), r.GetBase(), c.mockResponse.rates[i].Base())
+		}
+	}
+}
+
+func (g *grpcTest) TestCreateNew() {
+
+}
 
 func TestGrpcHandler(t *testing.T) {
 	t.Parallel()

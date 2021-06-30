@@ -9,6 +9,7 @@ require (
 	github.com/friendsofgo/errors v0.9.2 // indirect
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.2
+	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-redis/redis/v8 v8.10.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.1.2
